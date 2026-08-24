@@ -21,9 +21,11 @@ import config
 from core.game import Game
 from agents.random_agent import RandomAgent
 from render import renderer
-
+import numpy as np
+from agents.neural_agent import NeuralAgent
 
 def build_population(grid_size, generation=0):
+    genome = np.load("models/best.npy")
     """
     grid_size x grid_size tane BAĞIMSIZ oyun + ajan üretir.
 
@@ -39,7 +41,7 @@ def build_population(grid_size, generation=0):
         game = Game(seed=seed)
         game.label = f"#{i}"
         games.append(game)
-        agents.append(RandomAgent(seed=seed + 500, name=f"random-{i}"))
+        agents.append(NeuralAgent(genome=genome, name=f"neural-{i}"))
 
     return games, agents
 
@@ -47,7 +49,7 @@ def build_population(grid_size, generation=0):
 def main():
     pygame.init()
     screen = pygame.display.set_mode((config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
-    pygame.display.set_caption("Snake Evolution — Nesil 0 (rastgele beyinler)")
+    pygame.display.set_caption("Snake Evolution — Nesil 0 (eğitilmiş beyin)")
     clock = pygame.time.Clock()
 
     grid_size = config.GRID_SIZE
@@ -83,7 +85,7 @@ def main():
                     generation += 1
                     games, agents = build_population(grid_size, generation)
                     pygame.display.set_caption(
-                        f"Snake Evolution — Nesil {generation} (rastgele beyinler)"
+                        f"Snake Evolution — Nesil {generation} (eğitilmiş beyinler)"
                     )
                 elif event.key == pygame.K_SPACE:
                     speed_index = (speed_index + 1) % len(config.SPEED_MULTIPLIERS)
@@ -145,9 +147,9 @@ def _draw_generation_summary(surface, games):
     font = renderer._get_font(20)
     small = renderer._get_font(15)
 
-    w, h = 300, 60 + len(games) * 24
+    w, h = 620, 60 + len(games) * 24
     x = (config.WINDOW_WIDTH - w) // 2
-    y = (config.WINDOW_HEIGHT - h) // 2
+    y = config.WINDOW_HEIGHT - h - 20
 
     panel = pygame.Surface((w, h))
     panel.set_alpha(235)

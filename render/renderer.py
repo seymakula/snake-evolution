@@ -46,15 +46,14 @@ def _cell_size(game, rect):
 # --------------------------------------------------------------------
 
 def draw_game(surface, game, rect, show_header=True, is_leader=False):
-    """Bir oyunu verilen dikdörtgenin içine çizer."""
-    cell = _cell_size(game, rect)
+    header_h = 40 if show_header else 0
+
+    cell = min(rect.width // game.cols, (rect.height - header_h) // game.rows)
     board_w = cell * game.cols
     board_h = cell * game.rows
 
-    # Tahtayı panelin ortasına hizala.
     ox = rect.x + (rect.width - board_w) // 2
-    oy = rect.y + (rect.height - board_h) // 2
-
+    oy = rect.y + header_h + (rect.height - header_h - board_h) // 2
     dead = not game.is_alive
 
     # Ölmüş oyunlar grileşir — kimin elendiği bir bakışta görünsün.
