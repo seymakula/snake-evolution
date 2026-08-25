@@ -52,6 +52,7 @@ def test_different_seeds():
 
 def test_same_seed_reproducible():
     """Aynı tohum + aynı aksiyonlar = birebir aynı sonuç."""
+
     def play(seed):
         game = Game(seed=seed)
         rng = random.Random(999)
@@ -105,9 +106,9 @@ def test_win_on_tiny_board():
 def test_no_pygame():
     """Motor pygame'e bağımlı olmamalı."""
     import sys
+
     assert "pygame" not in sys.modules, (
-        "pygame yüklenmiş! core/ içinde bir yerde import ediliyor. "
-        "Motor ekransız çalışabilmeli."
+        "pygame yüklenmiş! core/ içinde bir yerde import ediliyor. " "Motor ekransız çalışabilmeli."
     )
     print("[OK] Motor pygame'siz çalışıyor.")
 

@@ -16,9 +16,17 @@ from agents.neural_agent import NeuralNetwork
 from core import constants as C
 
 DUYULAR = [
-    "tehlike ileri", "tehlike sol", "tehlike sag",
-    "yon yukari", "yon asagi", "yon sol", "yon sag",
-    "yem yukari", "yem asagi", "yem sol", "yem sag",
+    "tehlike ileri",
+    "tehlike sol",
+    "tehlike sag",
+    "yon yukari",
+    "yon asagi",
+    "yon sol",
+    "yon sag",
+    "yem yukari",
+    "yem asagi",
+    "yem sol",
+    "yem sag",
 ]
 
 AKSIYONLAR = ["duz git", "saga don", "sola don"]
@@ -72,9 +80,13 @@ def baglantilari_ciz(ax, sol, sag, W, esik):
 
 def noronlari_ciz(ax, konumlar, renk, boyut=420):
     ax.scatter(
-        konumlar[:, 0], konumlar[:, 1],
-        s=boyut, c=renk, edgecolors="#1a202c",
-        linewidths=1.2, zorder=3,
+        konumlar[:, 0],
+        konumlar[:, 1],
+        s=boyut,
+        c=renk,
+        edgecolors="#1a202c",
+        linewidths=1.2,
+        zorder=3,
     )
 
 
@@ -82,7 +94,7 @@ def main():
     # --- Egitilmis agi yukle ---
     genome = np.load("models/best.npy")
     net = NeuralNetwork(config.STATE_SIZE, config.HIDDEN_SIZE, C.ACTION_NUM)
-    net.from_vector(genome)   # BU SATIR OLMAZSA rastgele agi cizersin!
+    net.from_vector(genome)  # BU SATIR OLMAZSA rastgele agi cizersin!
 
     # --- Esikler: en guclu %25 ---
     esik1 = np.percentile(np.abs(net.w1), 100 - TOP_PERCENT)
@@ -110,21 +122,24 @@ def main():
         ax.text(x, y, str(k), ha="center", va="center", fontsize=8, zorder=4)
 
     for (x, y), isim in zip(cikti, AKSIYONLAR):
-        ax.text(x + 0.06, y, isim, ha="left", va="center",
-                fontsize=11, fontweight="bold")
+        ax.text(x + 0.06, y, isim, ha="left", va="center", fontsize=11, fontweight="bold")
 
     # --- Katman basliklari ---
-    ax.text(0.0, 1.09, f"GIRDI\n{config.STATE_SIZE} duyu",
-            ha="center", fontsize=11, fontweight="bold")
-    ax.text(1.0, 1.09, f"GIZLI\n{config.HIDDEN_SIZE} noron",
-            ha="center", fontsize=11, fontweight="bold")
-    ax.text(2.0, 1.09, f"CIKTI\n{C.ACTION_NUM} aksiyon",
-            ha="center", fontsize=11, fontweight="bold")
+    ax.text(
+        0.0, 1.09, f"GIRDI\n{config.STATE_SIZE} duyu", ha="center", fontsize=11, fontweight="bold"
+    )
+    ax.text(
+        1.0, 1.09, f"GIZLI\n{config.HIDDEN_SIZE} noron", ha="center", fontsize=11, fontweight="bold"
+    )
+    ax.text(
+        2.0, 1.09, f"CIKTI\n{C.ACTION_NUM} aksiyon", ha="center", fontsize=11, fontweight="bold"
+    )
 
     ax.set_title(
         f"Egitilmis yilan beyni — en guclu %{TOP_PERCENT} baglanti\n"
         f"mavi = pozitif agirlik, kirmizi = negatif, kalinlik = buyukluk",
-        fontsize=12, pad=28,
+        fontsize=12,
+        pad=28,
     )
 
     ax.set_xlim(-0.55, 2.5)

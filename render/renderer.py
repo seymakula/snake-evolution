@@ -15,10 +15,10 @@ import pygame
 import config
 from core import constants as C
 
-
 # --------------------------------------------------------------------
 # Izgara geometrisi
 # --------------------------------------------------------------------
+
 
 def compute_panel_rects(window_width, window_height, grid_size, gap, top_margin=0):
     rects = []
@@ -33,6 +33,7 @@ def compute_panel_rects(window_width, window_height, grid_size, gap, top_margin=
             rects.append(pygame.Rect(x, y, panel_w, panel_h))
     return rects
 
+
 def _cell_size(game, rect):
     """
     Hücre boyutu SABİT DEĞİL — panelin boyutundan hesaplanır.
@@ -44,6 +45,7 @@ def _cell_size(game, rect):
 # --------------------------------------------------------------------
 # Tek bir oyunu çizme
 # --------------------------------------------------------------------
+
 
 def draw_game(surface, game, rect, show_header=True, is_leader=False):
     header_h = 40 if show_header else 0
@@ -65,7 +67,8 @@ def draw_game(surface, game, rect, show_header=True, is_leader=False):
         fr, fc = game.food
         color = config.COLOR_FOOD_DEAD if dead else config.COLOR_FOOD
         pygame.draw.rect(
-            surface, color,
+            surface,
+            color,
             (ox + fc * cell + 1, oy + fr * cell + 1, cell - 2, cell - 2),
         )
 
@@ -76,7 +79,8 @@ def draw_game(surface, game, rect, show_header=True, is_leader=False):
         else:
             color = config.COLOR_HEAD if i == 0 else config.COLOR_BODY
         pygame.draw.rect(
-            surface, color,
+            surface,
+            color,
             (ox + c * cell + 1, oy + r * cell + 1, cell - 2, cell - 2),
         )
 
@@ -105,6 +109,7 @@ def _draw_header(surface, game, rect, dead):
 # --------------------------------------------------------------------
 # Izgarayı çizme
 # --------------------------------------------------------------------
+
 
 def draw_grid(surface, games, rects, leader_index=None):
     """Birden çok oyunu ızgarada çizer. games ve rects aynı sırada olmalı."""

@@ -25,7 +25,7 @@ class Game:
         # Açlık limiti tahta büyüklüğüne bağlı olmalı:
         # 3x3'te 800 adım anlamsız, 20x20'de 20 adım çok kısa.
         # Açlık limiti tahta boyutuna bağlı olmalı: 3x3'te 800 adım anlamsız,
-# 20x20'de 20 adım çok kısa. Çarpanı config'den al.
+        # 20x20'de 20 adım çok kısa. Çarpanı config'den al.
         self.hunger_limit = self.rows * self.cols * config.HUNGER_FACTOR
 
         self.reset()
@@ -202,37 +202,45 @@ class Game:
         hiçbir şey değişmesin.
         """
         if self.food is None:
-            return [0]*11
+            return [0] * 11
         idx = C.DIRECTION_INDEX[self.direction]
-        yon_direct=self.direction
-        yon_right=C.DIRECTIONS[(idx+1)% len(C.DIRECTIONS)]
-        yon_left=C.DIRECTIONS[(idx-1)% len(C.DIRECTIONS)]
+        yon_direct = self.direction
+        yon_right = C.DIRECTIONS[(idx + 1) % len(C.DIRECTIONS)]
+        yon_left = C.DIRECTIONS[(idx - 1) % len(C.DIRECTIONS)]
         hr, hc = self.head
-        direct_cell=(hr + yon_direct[0], hc + yon_direct[1])
-        right_cell=(hr + yon_right[0], hc + yon_right[1])
-        left_cell=(hr + yon_left[0], hc + yon_left[1])
+        direct_cell = (hr + yon_direct[0], hc + yon_direct[1])
+        right_cell = (hr + yon_right[0], hc + yon_right[1])
+        left_cell = (hr + yon_left[0], hc + yon_left[1])
 
-        danger_direct=int(self.is_danger(direct_cell))
-        danger_right=int(self.is_danger(right_cell))
-        danger_left=int(self.is_danger(left_cell))
-        
-        which_up=int(self.direction == C.UP)
-        which_down=int(self.direction == C.DOWN)
-        which_left=int(self.direction == C.LEFT)
-        which_right=int(self.direction == C.RIGHT)
-        
+        danger_direct = int(self.is_danger(direct_cell))
+        danger_right = int(self.is_danger(right_cell))
+        danger_left = int(self.is_danger(left_cell))
+
+        which_up = int(self.direction == C.UP)
+        which_down = int(self.direction == C.DOWN)
+        which_left = int(self.direction == C.LEFT)
+        which_right = int(self.direction == C.RIGHT)
 
         fr, fc = self.food
-        where_food_up=int(fr < hr)
-        where_food_down=int(fr > hr)
-        where_food_left=int(fc < hc)
-        where_food_right=int(fc > hc)
-        
+        where_food_up = int(fr < hr)
+        where_food_down = int(fr > hr)
+        where_food_left = int(fc < hc)
+        where_food_right = int(fc > hc)
+
         return [
-            danger_direct, danger_left, danger_right,
-            which_up, which_down, which_left, which_right,
-            where_food_up, where_food_down, where_food_left, where_food_right,
+            danger_direct,
+            danger_left,
+            danger_right,
+            which_up,
+            which_down,
+            which_left,
+            which_right,
+            where_food_up,
+            where_food_down,
+            where_food_left,
+            where_food_right,
         ]
+
     def _info(self):
         """Sonuç ekranı, fitness ve hata ayıklama için ekstra bilgi."""
         return {

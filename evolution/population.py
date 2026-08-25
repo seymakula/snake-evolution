@@ -1,27 +1,32 @@
-
 from collections import Counter
 from agents.neural_agent import NeuralAgent
 from evolution.fitness import fitness
 from core.game import Game
+
+
 def play(game, agent):
     """Bir oyunu baştan sona oynatır. Ekransız — eğitim de böyle koşacak."""
     while game.is_alive:
         game.step(agent.act(game.get_state(), game))
     return game
-def evaluate_genome(genome, seed,return_game=False):
-    agent=NeuralAgent(genome=genome)
-    game=Game(seed=seed)
-    play(game,agent)
-    score=fitness(game)
+
+
+def evaluate_genome(genome, seed, return_game=False):
+    agent = NeuralAgent(genome=genome)
+    game = Game(seed=seed)
+    play(game, agent)
+    score = fitness(game)
     if return_game:
-        return score, game,genome
+        return score, game, genome
     return score
-def evaluate_population(genomes,seed):
-    result=[]
+
+
+def evaluate_population(genomes, seed):
+    result = []
     for genome in genomes:
-        gen=evaluate_genome(genome,seed,return_game=True)
+        gen = evaluate_genome(genome, seed, return_game=True)
         result.append(gen)
-    result.sort( key=lambda r: r[0], reverse=True)
+    result.sort(key=lambda r: r[0], reverse=True)
 
     n = len(result)
     fitnesses = [r[0] for r in result]

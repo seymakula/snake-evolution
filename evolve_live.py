@@ -31,6 +31,8 @@ from agents.neural_agent import NeuralAgent
 from evolution.population import evaluate_population
 from evolution.genetic import next_generation
 from render import renderer
+from render import nn_view
+from agents.neural_agent import NeuralNetwork
 
 # Nesil bitince ekranda kac saniye beklensin (ozet okunabilsin diye)
 PAUSE_AFTER_GEN = 1.2
@@ -62,7 +64,7 @@ def build_showcase(genomes, results, gen, grid_size):
     games, agents = [], []
 
     for i, (fit, _game, genome) in enumerate(results[:n]):
-        game = Game(seed=gen)          # nesildeki herkes ayni sinava girdi
+        game = Game(seed=gen)  # nesildeki herkes ayni sinava girdi
         game.label = f"#{i+1}"
         games.append(game)
         agents.append(NeuralAgent(genome=genome))
@@ -77,7 +79,10 @@ def main():
 
     grid_size = config.GRID_SIZE
     rects = renderer.compute_panel_rects(
-        config.WINDOW_WIDTH, config.WINDOW_HEIGHT, grid_size, config.GAP,
+        config.WINDOW_WIDTH,
+        config.WINDOW_HEIGHT,
+        grid_size,
+        config.GAP,
         top_margin=36,
     )
 
@@ -91,12 +96,13 @@ def main():
     speed_index = 0
     running = True
     step_acc = 0.0
-    hold_timer = 0.0        # nesil bitince bekleme sayaci
+    hold_timer = 0.0  # nesil bitince bekleme sayaci
     skip = False
 
     # --- ilk nesli degerlendir ---
     results, stats = evaluate_population(genomes, seed=gen)
     games, agents = build_showcase(genomes, results, gen, grid_size)
+    nn_gorunum = False
 
     while running:
         dt = clock.tick(config.FPS) / 1000.0
@@ -113,6 +119,8 @@ def main():
                     speed_index = (speed_index + 1) % len(config.SPEED_MULTIPLIERS)
                 elif event.key == pygame.K_n:
                     skip = True
+                elif event.key == pygame.K_TAB:
+                    nn_gorunum = not nn_gorunum
 
         speed = config.SPEED_MULTIPLIERS[speed_index]
         alive = any(g.is_alive for g in games)
@@ -144,13 +152,30 @@ def main():
                 step_acc = 0.0
 
         # ---------- cizim ----------
-        leader = renderer.find_leader(games)
-        renderer.draw_grid(screen, games, rects, leader_index=leader)
-        _draw_status(screen, gen, speed, paused, stats, best_ever, games)
+        if nn_gorunum:
+            screen.fill(config.COLOR_BG)
+            i = renderer.find_leader(games)
+            if i is None:
+                i = 0
 
-        pygame.display.set_caption(
-            f"Snake Evolution — CANLI EVRIM — Nesil {gen}"
-        )
+            net = NeuralNetwork(config.STATE_SIZE, config.HIDDEN_SIZE, C.ACTION_NUM)
+            net.from_vector(results[i][2])
+            nn_view.draw_live_network(
+                screen,
+                net,
+                games[i].get_state(),
+                pygame.Rect(0, 40, config.WINDOW_WIDTH, config.WINDOW_HEIGHT - 40),
+                renderer._get_font(14),
+                renderer._get_font(18),
+                baslik=f"Nesil {gen} — #{i+1}",
+            )
+            _draw_status(screen, gen, speed, paused, stats, best_ever, games)
+
+        else:
+            leader = renderer.find_leader(games)
+            renderer.draw_grid(screen, games, rects, leader_index=leader)
+            _draw_status(screen, gen, speed, paused, stats, best_ever, games)
+        pygame.display.set_caption(f"Snake Evolution — CANLI EVRIM — Nesil {gen}")
         pygame.display.flip()
 
     pygame.quit()

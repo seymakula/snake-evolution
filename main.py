@@ -19,10 +19,10 @@ import pygame
 
 import config
 from core.game import Game
-from agents.random_agent import RandomAgent
 from render import renderer
 import numpy as np
 from agents.neural_agent import NeuralAgent
+
 
 def build_population(grid_size, generation=0):
     genome = np.load("models/best.npy")
@@ -54,7 +54,7 @@ def main():
 
     grid_size = config.GRID_SIZE
     rects = renderer.compute_panel_rects(
-        config.WINDOW_WIDTH, config.WINDOW_HEIGHT, grid_size, config.GAP,top_margin=36
+        config.WINDOW_WIDTH, config.WINDOW_HEIGHT, grid_size, config.GAP, top_margin=36
     )
 
     generation = 0

@@ -61,8 +61,13 @@ def main():
         kirilma = ustunde[0]
         for ax in (ax1, ax2):
             ax.axvline(kirilma, color="#718096", linestyle="--", linewidth=1)
-        ax1.text(kirilma + 2, ax1.get_ylim()[1] * 0.9,
-                 f"sicrama\n~nesil {kirilma}", fontsize=9, color="#4a5568")
+        ax1.text(
+            kirilma + 2,
+            ax1.get_ylim()[1] * 0.9,
+            f"sicrama\n~nesil {kirilma}",
+            fontsize=9,
+            color="#4a5568",
+        )
         print(f"Sicrama noktasi: nesil {kirilma}")
 
     fig.suptitle(
@@ -77,7 +82,9 @@ def main():
 
     # --- Rakamla ozet ---
     print(f"\nNesil   0: ort fitness {avg_fit[0]:7.2f}   ort skor {avg_score[0]:5.2f}")
-    print(f"Nesil {len(h)//2:>3}: ort fitness {avg_fit[len(h)//2]:7.2f}   ort skor {avg_score[len(h)//2]:5.2f}")
+    print(
+        f"Nesil {len(h)//2:>3}: ort fitness {avg_fit[len(h)//2]:7.2f}   ort skor {avg_score[len(h)//2]:5.2f}"
+    )
     print(f"Nesil {len(h)-1:>3}: ort fitness {avg_fit[-1]:7.2f}   ort skor {avg_score[-1]:5.2f}")
     print(f"\nEn yuksek skor: {int(best_score.max())} (nesil {int(best_score.argmax())})")
 

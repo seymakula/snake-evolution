@@ -55,9 +55,7 @@ def evaluate_population_multi(genomes, seed, n_games=None):
     results = []
 
     for genome in genomes:
-        results.append(
-            evaluate_genome_multi(genome, seed, n_games, return_game=True)
-        )
+        results.append(evaluate_genome_multi(genome, seed, n_games, return_game=True))
 
     results.sort(key=lambda r: r[0], reverse=True)
 

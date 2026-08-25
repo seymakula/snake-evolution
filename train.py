@@ -30,6 +30,7 @@ CHECKPOINT = "models/checkpoint.npz"
 # Genom uretimi
 # ----------------------------------------------------------------------
 
+
 def genome_size():
     return (
         config.STATE_SIZE * config.HIDDEN_SIZE
@@ -49,6 +50,7 @@ def random_genomes(n, seed=0):
 # ----------------------------------------------------------------------
 # Checkpoint
 # ----------------------------------------------------------------------
+
 
 def save_checkpoint(genomes, gen, history, rng, best_fitness):
     """
@@ -83,11 +85,12 @@ def load_checkpoint():
     # HIDDEN_SIZE degistirilip eski checkpoint'ten devam edilirse
     # genom boyu tutmaz ve from_vector anlasilmaz bir hata verir.
     # Bu kontrol onu onceden yakalar.
-    if (int(d["hidden_size"]) != config.HIDDEN_SIZE
-            or int(d["state_size"]) != config.STATE_SIZE):
+    if int(d["hidden_size"]) != config.HIDDEN_SIZE or int(d["state_size"]) != config.STATE_SIZE:
         print("Checkpoint farkli mimariye ait — sifirdan baslaniyor.")
-        print(f"  kayitli: {int(d['state_size'])}->{int(d['hidden_size'])}, "
-              f"simdiki: {config.STATE_SIZE}->{config.HIDDEN_SIZE}")
+        print(
+            f"  kayitli: {int(d['state_size'])}->{int(d['hidden_size'])}, "
+            f"simdiki: {config.STATE_SIZE}->{config.HIDDEN_SIZE}"
+        )
         return None
 
     # literal_eval kullaniliyor, eval degil — eval herhangi bir kodu
@@ -108,6 +111,7 @@ def load_checkpoint():
 # ----------------------------------------------------------------------
 # Egitim
 # ----------------------------------------------------------------------
+
 
 def main():
     os.makedirs("models", exist_ok=True)
@@ -133,8 +137,10 @@ def main():
         print("Sifirdan baslaniyor.\n")
 
     if baslangic >= config.GENERATION_LIMIT:
-        print(f"Zaten {baslangic} nesil tamamlanmis. "
-              f"config.GENERATION_LIMIT'i artir ya da --fresh kullan.")
+        print(
+            f"Zaten {baslangic} nesil tamamlanmis. "
+            f"config.GENERATION_LIMIT'i artir ya da --fresh kullan."
+        )
         return
 
     gen = baslangic
@@ -154,8 +160,7 @@ def main():
 
             if gen % 10 == 0:
                 deaths = "  ".join(
-                    f"{name}:{count}"
-                    for name, count in stats["deaths"].most_common()
+                    f"{name}:{count}" for name, count in stats["deaths"].most_common()
                 )
                 print(f"          olumler: {deaths}")
 
@@ -165,10 +170,14 @@ def main():
 
             # History artik SOZLUK degil LISTE tutuyor — checkpoint'ten
             # yuklenen satirlarla ayni tipte olsun diye.
-            history.append([
-                stats["avg_fitness"], stats["best_fitness"],
-                stats["avg_score"], stats["best_score"],
-            ])
+            history.append(
+                [
+                    stats["avg_fitness"],
+                    stats["best_fitness"],
+                    stats["avg_score"],
+                    stats["best_score"],
+                ]
+            )
 
             # Her nesilde diske yazmak gereksiz yuk; 10'da bir yeterli.
             # Ctrl+C durumu asagida ayrica yakalaniyor.
@@ -181,8 +190,9 @@ def main():
         print("\n\nDurduruldu — kaydediliyor...")
         save_checkpoint(genomes, gen, history, rng, best_fitness)
         np.save("models/history.npy", np.array(history))
-        print(f"Nesil {gen}'e kadar kaydedildi. "
-              f"Tekrar 'python train.py' ile devam edebilirsin.")
+        print(
+            f"Nesil {gen}'e kadar kaydedildi. " f"Tekrar 'python train.py' ile devam edebilirsin."
+        )
         return
 
     save_checkpoint(genomes, config.GENERATION_LIMIT - 1, history, rng, best_fitness)
