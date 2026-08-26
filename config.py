@@ -37,7 +37,7 @@ COLOR_SNAKE_DEAD = (70, 70, 75)
 COLOR_FOOD_DEAD = (90, 70, 72)
 COLOR_TEXT_DEAD = (110, 110, 118)
 
-STATE_SIZE = 11  # duyu vektörünün uzunluğu
+STATE_SIZE = 14  # duyu vektörünün uzunluğu
 HIDDEN_SIZE = 12  # gizli katman nöron sayısı
 
 FOOD_FITNESS = 2.0

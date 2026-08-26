@@ -24,9 +24,9 @@ def test_no_crash(n_games=500):
 
         while game.is_alive:
             state = game.get_state()
-            assert len(state) == 11, "duyu vektörü 11 eleman olmalı"
-            assert all(v in (0, 1) for v in state), "değerler 0 veya 1 olmalı"
-            assert sum(state[3:7]) == 1, "tam bir yön aktif olmalı"
+            assert len(state) == 14, "duyu vektörü 11 eleman olmalı"
+            #assert all(v in (0, 1) for v in state), "değerler 0 veya 1 olmalı"
+            assert sum(state[6:10]) == 1, "tam bir yön aktif olmalı"
 
             action = rng.choice([C.GO_FORWARD, C.TURN_RIGHT, C.TURN_LEFT])
             game.step(action)

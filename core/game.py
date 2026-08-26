@@ -83,7 +83,42 @@ class Game:
 
     def is_body(self, pos):
         return pos in self.body_set
+    def _flood_fill(self, start, limit=None):
+        """
+        start hucresinden erisilebilecek bos hucre sayisi.
 
+        Neden duz sayim degil: koridora girip saga donebiliyorsan o alan
+        da erisilebilir. Duz sayim bunu goremez, flood fill gorur.
+        Cikmaz sokagi gercekten tespit eden sey bu.
+
+        limit: erken durdurma. "50'den fazla bos var" ile "87 bos var"
+        arasindaki fark ajan icin onemsiz, ama hesap maliyeti buyuk.
+        """
+        if not self._in_bounds(start) or start in self.body_set:
+            return 0
+
+        if limit is None:
+            limit = self.rows * self.cols
+
+        gorulen = {start}
+        kuyruk = [start]
+        sayac = 0
+
+        while kuyruk:
+            r, c = kuyruk.pop()
+            sayac += 1
+            if sayac >= limit:
+                break
+
+            for dr, dc in C.DIRECTIONS:
+                komsu = (r + dr, c + dc)
+                if (komsu not in gorulen
+                        and self._in_bounds(komsu)
+                        and komsu not in self.body_set):
+                    gorulen.add(komsu)
+                    kuyruk.append(komsu)
+
+        return sayac
     def is_danger(self, pos):
         """Bu hücreye girmek ölüm mü? Duyu vektöründe kullanılacak."""
         return self.is_wall(pos) or self.is_body(pos)
@@ -221,6 +256,13 @@ class Game:
         which_left = int(self.direction == C.LEFT)
         which_right = int(self.direction == C.RIGHT)
 
+        # Bos alan sayaci: o yone gidersen ne kadar yer var?
+        # Tehlike sensoru "dolu mu" der (ikili); bu "ne kadar yer var" der.
+        # Cikmaz sokagi ancak bu gorebilir.
+        toplam = self.rows * self.cols
+        alan_direct = self._flood_fill(direct_cell) / toplam
+        alan_right = self._flood_fill(right_cell) / toplam
+        alan_left = self._flood_fill(left_cell) / toplam
         fr, fc = self.food
         where_food_up = int(fr < hr)
         where_food_down = int(fr > hr)
@@ -228,19 +270,11 @@ class Game:
         where_food_right = int(fc > hc)
 
         return [
-            danger_direct,
-            danger_left,
-            danger_right,
-            which_up,
-            which_down,
-            which_left,
-            which_right,
-            where_food_up,
-            where_food_down,
-            where_food_left,
-            where_food_right,
+            danger_direct, danger_left, danger_right,
+            alan_direct, alan_left, alan_right,
+            which_up, which_down, which_left, which_right,
+            where_food_up, where_food_down, where_food_left, where_food_right,
         ]
-
     def _info(self):
         """Sonuç ekranı, fitness ve hata ayıklama için ekstra bilgi."""
         return {
