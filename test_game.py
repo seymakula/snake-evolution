@@ -18,14 +18,19 @@ def test_no_crash(n_games=500):
     results = {}
 
     for i in range(n_games):
-        len(get_state()) == 11
+       
         game = Game(seed=i)
         rng = random.Random(i)
 
         while game.is_alive:
+            state = game.get_state()
+            assert len(state) == 11, "duyu vektörü 11 eleman olmalı"
+            assert all(v in (0, 1) for v in state), "değerler 0 veya 1 olmalı"
+            assert sum(state[3:7]) == 1, "tam bir yön aktif olmalı"
+
             action = rng.choice([C.GO_FORWARD, C.TURN_RIGHT, C.TURN_LEFT])
-            state, reward, done, info = game.step(action)
-            if done:
+            game.step(action)
+            if not game.is_alive:
                 break
 
         # Oyun bittiyse RUNNING dışında bir sonuçla bitmiş olmalı.
