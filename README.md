@@ -4,7 +4,7 @@ Genetik algoritma ile kendi kendine yılan oynamayı öğrenen sinir ağı ajan�
 
 ![Öğrenme eğrisi](ogrenme_egrisi.png)
 
-300 nesilde ortalama fitness 0.63 → 46.33. En iyi birey 68 yem (100 hücrelik tahtada).
+100 nesilde ortalama fitness 0.63 → 46.25. En iyi birey 68 yem (100 hücrelik tahtada).
 
 ---
 
@@ -20,16 +20,18 @@ pip install -r requirements.txt
 
 | Komut | Ne yapar |
 |---|---|
-| `python train.py` | Ekransız eğitim. `models/best.npy` ve `models/history.npy` üretir. |
+| `python train.py` | Ekransız eğitim. Checkpoint varsa kaldığı nesilden devam eder. |
+| `python train.py --fresh` | Checkpoint'i yok sayar, sıfırdan başlar. |
 | `python evolve_live.py` | Evrimi ekranda izle — nesiller ilerledikçe yılanlar iyileşir. |
 | `python main.py` | Kaydedilmiş en iyi beyni izle. |
 | `python plot_history.py` | Öğrenme eğrisini çiz. |
-| `python visualize.py` | Ağırlık haritasını çiz. |
+| `python visualize.py` | Ağırlık haritasını çiz (statik PNG). |
+| `python genelleme_testi.py` | Modelleri görülmemiş tohumlarda karşılaştır. |
 | `python test_game.py` | Oyun motorunun doğruluk testleri. |
 
-Tuşlar: `P` duraklat · `SPACE` hız (1x/2x/4x) · `I` çık · `N` nesli atla
+Tuşlar: `P` duraklat · `SPACE` hız · `TAB` ağ görünümü · `N` nesli atla · `I` çık
 
-Tüm ayarlar `config.py` içinde.
+Eğitim `Ctrl+C` ile kesilirse son durum kaydedilir. Tüm ayarlar `config.py` içinde.
 
 ---
 
@@ -37,7 +39,7 @@ Tüm ayarlar `config.py` içinde.
 
 Üç ayrım projenin tamamını belirledi:
 
-**Mantık ≠ görüntü.** `core/game.py` içinde tek bir pygame satırı yok. Eğitim tamamen ekransız koşuyor — 100 birey × 300 nesil dakikalar alıyor, ekrana çizilseydi saatler sürerdi.
+**Mantık ≠ görüntü.** `core/game.py` içinde tek bir pygame satırı yok. Eğitim tamamen ekransız koşuyor — 100 birey × 100 nesil dakikalar alıyor, ekrana çizilseydi saatler sürerdi.
 
 **Ortam ≠ ajan.** `agents/base.py` bir sözleşme tanımlıyor: durum ver, aksiyon al. `RandomAgent` ve `NeuralAgent` aynı yerden takılıyor; sinir ağı eklenirken motorda tek satır değişmedi.
 
@@ -47,7 +49,7 @@ Tüm ayarlar `config.py` içinde.
 core/       oyun motoru + sabitler   (pygame YOK)
 agents/     ajan sözleşmesi, rastgele ajan, sinir ağı
 evolution/  fitness, popülasyon, genetik operatörler
-render/     çizim
+render/     çizim + canlı ağ görünümü
 ```
 
 ---
@@ -94,6 +96,10 @@ Turnuva havuzu tüm popülasyon, sadece elitler değil. Sıralamada 60. olan bir
 
 Nesiller arasında taşınan **tek şey genom**. Gövde uzunluğu, skor, adım sayısı — hiçbiri taşınmaz. Her yılan sıfırdan doğar.
 
+### Checkpoint
+
+Eğitim kaldığı nesilden devam eder. Checkpoint'te sadece en iyi genom değil **popülasyonun tamamı** saklanır — yoksa evrim yeni bir popülasyonla baştan başlar. Rastgele üretecin iç durumu da kaydedilir, aksi halde devam eden koşu aynı diziyi baştan üretir ve tekrarlanabilirlik bozulur.
+
 ---
 
 ## Bulgular
@@ -130,9 +136,23 @@ Kendiliğinden düzeldi çünkü katsayı doğru ayarlıydı: bir yem 2 puan, 20
 
 Tek bir fitness sayısı "iyi mi kötü mü" der; ölüm dağılımı "neden" der.
 
-### 3. Hiperparametre deneyleri
+### 3. Koşular arası varyans çok yüksek
 
-**Gizli katman boyutu** (100 nesil):
+Aynı ayarlar, sadece `TRAIN_SEED` farklı:
+
+| Tohum | Nesil | Son nesil ort. | En iyi skor |
+|---|---|---|---|
+| 42 | 100 | 46.25 | 68 |
+| 7 | 100 | 3.63 | 12 |
+| 7 | 300 | 4.39 | 26 |
+
+Tohum 7 üç kat uzun eğitimde bile tohum 42'nin 100 nesline yaklaşamadı. Sebep muhtemelen erken yakınsama: başlangıç popülasyonunda işe yarar parça yoksa çaprazlamanın birleştireceği bir şey olmuyor.
+
+**Bu, aşağıdaki hiperparametre karşılaştırmalarının hepsini şüpheli kılıyor** — hepsi tek koşu. Sağlam sonuç için her ayar en az 3 farklı tohumla tekrarlanmalı.
+
+### 4. Hiperparametre deneyleri (tek koşu — yukarıdaki uyarıyla okuyun)
+
+**Gizli katman boyutu** (100 nesil, tohum 42):
 
 | Boyut | Genom | Son nesil ort. | En iyi skor |
 |---|---|---|---|
@@ -142,7 +162,7 @@ Tek bir fitness sayısı "iyi mi kötü mü" der; ölüm dağılımı "neden" de
 
 6'da ağ kapasitesi bileşik kurallara yetmiyor. 24'te genom iki katına çıktığı için genetik algoritma aynı nesil sayısında yakınsayamıyor.
 
-**Mutasyon oranı** (100 nesil):
+**Mutasyon oranı** (100 nesil, tohum 42):
 
 | Oran | Son nesil ort. | En iyi skor |
 |---|---|---|
@@ -156,7 +176,24 @@ Bu projede tek bir beyin kaydedilip gösterildiği için **tepe** optimize edild
 
 ---
 
-## Denenip geri alınan: çok oyunlu değerlendirme
+## Denenip geri alınanlar
+
+### Kuyruk hücresi kuralı
+
+**Motor bir noktada yılan oyununun standardından sapıyordu:** kuyruğun son hücresine girmek ölüm sayılıyordu. Oysa oraya girerken kuyruk zaten çekiliyor, yani hücre boşalıyor — çarpışma yok. (İstisna: o adımda yem yeniyorsa kuyruk çekilmez, girmek gerçekten ölümdür.)
+
+Kural düzeltildi ve `is_danger` de buna uygun hale getirildi. Sonuç:
+
+| Tohum 7, 300 nesil | Son nesil ort. | En iyi skor |
+|---|---|---|
+| Düzeltme **var** | 4.39 | 26 |
+| Düzeltme **yok** | **70.04** | **56** |
+
+**On altı kat kötüleşme.** Sebep: kural artık koşullu ("kuyruğa girebilirsin, ama sadece yem yemiyorsan") ama duyu vektörü o koşulu göremiyor. `is_danger` bazen kuyruğa güvenli diyor, bazen demiyor; ajan için sinyal gürültüye dönüşüyor.
+
+**Ders: ortamı daha doğru yapmak, ajanın algısı eşlik etmezse zarar verebiliyor.** Düzeltme geri alındı; anlamlı olması için duyu vektörünün kuyruk konumunu içermesi gerekir.
+
+### Çok oyunlu değerlendirme
 
 **Hipotez:** Her genom tek oyunla değerlendiriliyor. Bir genom o özel yem dizilimine iyi denk geldiği için yüksek fitness alabilir — aşırı uyum riski.
 
@@ -181,23 +218,18 @@ Tek oyunlu değerlendirme korundu. Kod karşılaştırma için repoda bırakıld
 
 **Yılan sonunda kendi gövdesine sıkışıyor.** Bir hata değil, duyu vektörünün sınırı: yılan yalnızca bir adım ötesini görüyor, kendi gövdesinin şeklini görmüyor. Girdiği boşluğun çıkmaz sokak olup olmadığını bilemiyor.
 
-Çözüm için duyu vektörü genişletilebilir — her yönde kaç boş hücre olduğu, ya da kuyruğun yönü. İkisi de vektörü büyütür ve öğrenmeyi yavaşlatır.
+Çözüm için duyu vektörü genişletilebilir — her yönde kaç boş hücre olduğu, ya da kuyruğun yönü. İkisi de vektörü büyütür ve öğrenmeyi yavaşlatır. Kuyruk deneyi bunun neden gerekli olduğunu gösterdi.
 
-**Deneyler tek koşu.** Genetik algoritma rastgele bir süreç; yukarıdaki farkların gerçek mi gürültü mü olduğu belirsiz. Sağlam sonuç için her ayar 3 farklı `TRAIN_SEED` ile tekrarlanmalı.
+**Deneyler tek koşu.** Bölüm 3'teki varyans tablosu bunun ne kadar ciddi olduğunu gösteriyor: aynı ayarlarla 3.63 ile 46.25 arasında sonuç alınabiliyor.
 
 **`evolve_live.py` ekranda 9 yılan gösteriyor ama popülasyon 100.** 9 bireyle elitizm popülasyonun yarısını kaplar, çeşitlilik ölür ve evrim yakınsamaz. Ekrandakiler o neslin en iyi 9'u.
 
 ---
 
-## Ağırlık haritası
+## Ağın içine bakmak
 
 ![NN haritası](nn_map.png)
 
-Eğitilmiş ağın en güçlü %25 bağlantısı. Mavi pozitif, kırmızı negatif, kalınlık büyüklük.
+`visualize.py` eğitilmiş ağın en güçlü %25 bağlantısını çizer — mavi pozitif, kırmızı negatif, kalınlık büyüklük. Ayrıca her duyunun toplam etkisini (`|w1|` satır toplamları) rakamla listeler: yılanın karar verirken en çok neye baktığı.
 
-`visualize.py` ayrıca her duyunun toplam etkisini (`|w1|` satır toplamları) rakamla listeliyor — yani yılanın karar verirken en çok neye baktığını.
-
----
-
-## Kaynaklar
-- Code Bullet (YouTube): Connect 4 / Jump King / Happy Wheels — arama, seyrek ödül ve neuroevolution yaklaşımlarının karşılaştırması
+`evolve_live.py` içinde `TAB` ile canlı görünüme geçilir. Orada nöronların parlaklığı o anki aktivasyondan gelir — hangi duyu tetikleniyor, hangi gizli nöron ateşleniyor, hangi aksiyon seçiliyor, adım adım izlenebilir.
