@@ -4,7 +4,7 @@ Genetik algoritma ile kendi kendine yılan oynamayı öğrenen sinir ağı ajan�
 
 ![Öğrenme eğrisi](ogrenme_egrisi.png)
 
-100 nesilde ortalama fitness 0.63 → 46.25. En iyi birey 68 yem (100 hücrelik tahtada).
+100 nesilde ortalama fitness 0.60 → 35.98. Duyu vektörü 14 sayı, ağ 219 parametre.
 
 ---
 
@@ -56,11 +56,12 @@ render/     çizim + canlı ağ görünümü
 
 ## Yöntem
 
-### Duyu vektörü (11 sayı)
+### Duyu vektörü (14 sayı)
 
 | Grup | İçerik |
 |---|---|
-| Tehlike (3) | önde / sağda / solda ölüm var mı |
+| Tehlike (3) | önde / sağda / solda ölüm var mı (0 veya 1) |
+| Boş alan (3) | o yöne gidilirse erişilebilir boş hücre oranı |
 | Yön (4) | yılan hangi yöne bakıyor (one-hot) |
 | Yem (4) | yem başa göre yukarıda / aşağıda / solda / sağda mı |
 
@@ -68,9 +69,11 @@ Ham koordinat (`baş=(7,3)`, `yem=(2,9)`) yerine bu sinyaller veriliyor. İki se
 
 Yön için tek sayı (0-3) yerine dört ayrı kutu kullanılıyor — tek sayı verilse ağ "sağ (3), yukarıdan (0) üç kat fazla bir şey" gibi anlamsız bir sıra ilişkisi kurardı.
 
+**Boş alan sayacı flood fill ile hesaplanıyor**, düz sayımla değil. Koridora girip sağa dönebiliyorsan o alan da erişilebilir; düz sayım bunu göremez. Değerler toplam hücre sayısına bölünüp normalize ediliyor — ham sayı 87 olurken diğer duyular 0-1 arasında kalsaydı ağ için dengesiz olurdu.
+
 ### Ağ
 
-`11 → 12 → 3`, gizli katmanda `tanh`. Toplam **183 parametre** (132 + 12 + 36 + 3).
+`14 → 12 → 3`, gizli katmanda `tanh`. Toplam **219 parametre**.
 
 `tanh` olmadan iki matris çarpımı matematiksel olarak tek matrise çöker ve gizli katman işlevsiz kalır. Gizli katman "önümde tehlike VAR **ve** sağımda da VAR ise sola dön" gibi bileşik kurallar için gerekli.
 
@@ -113,9 +116,11 @@ Eğitim kaldığı nesilden devam eder. Checkpoint'te sadece en iyi genom değil
 
 Plato boşa geçmiyor — popülasyonda işe yarar ağırlık parçaları birikiyor, bir çaprazlama doğru parçaları birleştirdiğinde çözülüyor. Nesil 30'da "çalışmıyor" deyip durdurulsaydı hiçbir şey görülmeyecekti.
 
-En iyi birey ile ortalama arasındaki kalıcı boşluk (sonda 120'ye karşı 46) çeşitliliğin göstergesi. Kapansaydı popülasyon tek çözüme saplanır, evrim dururdu.
+En iyi birey ile ortalama arasındaki kalıcı boşluk çeşitliliğin göstergesi. Kapansaydı popülasyon tek çözüme saplanır, evrim dururdu.
 
 ### 2. Ölüm sebebi dağılımı — en öğretici bulgu
+
+11 duyulu sürümde, nesil boyunca:
 
 | Nesil | wall | starved | self |
 |---|---|---|---|
@@ -132,27 +137,27 @@ En iyi birey ile ortalama arasındaki kalıcı boşluk (sonda 120'ye karşı 46)
 
 Kendiliğinden düzeldi çünkü katsayı doğru ayarlıydı: bir yem 2 puan, 200 adım daire yalnızca 1 puan. Daire çizenler bir süre öne geçti, yem yiyenler ortaya çıkınca elendiler.
 
-**En sonda kendilerine sıkışmaya başladılar.** `self` 77 — ve bu bir **başarı göstergesi**: kendine çarpabilmek için uzun olman, uzun olmak için çok yem yemiş olman gerekiyor.
+**En sonda kendilerine sıkışmaya başladılar.** `self` 77 — kendine çarpabilmek için uzun olman, uzun olmak için çok yem yemiş olman gerekiyor. Bu, aşağıdaki iyileştirmenin çıkış noktası oldu.
 
 Tek bir fitness sayısı "iyi mi kötü mü" der; ölüm dağılımı "neden" der.
 
-### 3. Koşular arası varyans çok yüksek
+### 3. Koşular arası varyans çok yüksekti
 
-Aynı ayarlar, sadece `TRAIN_SEED` farklı:
+11 duyulu sürümde, aynı ayarlar, sadece `TRAIN_SEED` farklı:
 
 | Tohum | Nesil | Son nesil ort. | En iyi skor |
 |---|---|---|---|
 | 42 | 100 | 46.25 | 68 |
-| 7 | 100 | 3.63 | 12 |
+| 7 | 100 | **3.63** | 12 |
 | 7 | 300 | 4.39 | 26 |
 
 Tohum 7 üç kat uzun eğitimde bile tohum 42'nin 100 nesline yaklaşamadı. Sebep muhtemelen erken yakınsama: başlangıç popülasyonunda işe yarar parça yoksa çaprazlamanın birleştireceği bir şey olmuyor.
 
-**Bu, aşağıdaki hiperparametre karşılaştırmalarının hepsini şüpheli kılıyor** — hepsi tek koşu. Sağlam sonuç için her ayar en az 3 farklı tohumla tekrarlanmalı.
+**Bu, aşağıdaki hiperparametre karşılaştırmalarının hepsini şüpheli kılıyor** — hepsi tek koşu.
 
 ### 4. Hiperparametre deneyleri (tek koşu — yukarıdaki uyarıyla okuyun)
 
-**Gizli katman boyutu** (100 nesil, tohum 42):
+**Gizli katman boyutu** (100 nesil, tohum 42, 11 duyu):
 
 | Boyut | Genom | Son nesil ort. | En iyi skor |
 |---|---|---|---|
@@ -162,7 +167,7 @@ Tohum 7 üç kat uzun eğitimde bile tohum 42'nin 100 nesline yaklaşamadı. Seb
 
 6'da ağ kapasitesi bileşik kurallara yetmiyor. 24'te genom iki katına çıktığı için genetik algoritma aynı nesil sayısında yakınsayamıyor.
 
-**Mutasyon oranı** (100 nesil, tohum 42):
+**Mutasyon oranı** (100 nesil, tohum 42, 11 duyu):
 
 | Oran | Son nesil ort. | En iyi skor |
 |---|---|---|
@@ -170,9 +175,36 @@ Tohum 7 üç kat uzun eğitimde bile tohum 42'nin 100 nesline yaklaşamadı. Seb
 | **0.05** | 46.25 | **68** |
 | 0.15 | 49.95 | 51 |
 
-İki metrik ters yönde hareket ediyor. Düşük mutasyon popülasyonu homojenleştiriyor — ortalama yüksek ama tavan kırılmıyor. Yüksek mutasyon iyi çözümleri bozuyor.
+İki metrik ters yönde hareket ediyor. Düşük mutasyon popülasyonu homojenleştiriyor — ortalama yüksek ama tavan kırılmıyor. Yüksek mutasyon iyi çözümleri bozuyor. Tek bir beyin kaydedilip gösterildiği için **tepe** optimize edildi → 0.05.
 
-Bu projede tek bir beyin kaydedilip gösterildiği için **tepe** optimize edildi → 0.05.
+---
+
+## Uygulanan iyileştirme: boş alan sayacı
+
+**Sorun:** Yılan uzadıkça kendi gövdesine sıkışıyordu (`self` ölümleri nesil 90'da 77). Sebep duyu vektörünün sınırıydı — tehlike sensörü yalnızca "bir adım ötesi dolu mu" diyor, girdiği boşluğun çıkmaz sokak olup olmadığını söylemiyor.
+
+**Çözüm:** Duyu vektörüne üç sayı eklendi — ileri, sağ ve sol yönde flood fill ile hesaplanan erişilebilir boş hücre oranı. Vektör 11→14, genom 183→219.
+
+**Sonuç:**
+
+| Tohum | 11 duyu (ort / en iyi skor) | 14 duyu (ort / en iyi skor) |
+|---|---|---|
+| 42 | 46.25 / 68 | 35.98 / 28 |
+| 7 | **3.63** / 12 | **38.16** / 44 |
+
+Nesil 90 ölüm dağılımı: `self` **77 → 39**.
+
+**Asıl kazanç tepe performansı değil, varyansın çökmesi.** 11 duyuda sonuç 3.63 ile 46.25 arasında savruluyordu; 14 duyuda iki tohumda da 36-38 aralığında.
+
+Sebep: boş alan sinyali erken nesillerde bile işe yarıyor. Yılan yem bulamasa bile "hangi taraf daha açık" bilgisiyle daha uzun yaşıyor, fitness ayrışıyor, seçilim çalışıyor. Yani seyrek ödül problemini hafifletiyor ve evrimin başlaması şansa kalmıyor.
+
+**Takas:** `starved` 7'den 32'ye çıktı. Yılan geniş alanda kalmayı tercih ediyor, dar bir köşedeki yeme gitmiyor. Daha temkinli ama daha az iştahlı bir ajan.
+
+### Yan bulgu: fitness ölçeği ≠ fitness sıralaması
+
+`starved` artışını düzeltmek için yem ödülü 2.0'dan 5.0'a çıkarıldı. **Hiçbir şey değişmedi** — ölüm dağılımı birebir aynı kaldı.
+
+Sebep: turnuva seçilimi yalnızca **sıralamaya** bakıyor, mutlak fitness değerlerine değil. Yem terimi zaten baskındı; katsayıyı büyütmek ölçeği değiştirdi ama hiçbir ikili karşılaştırmanın sonucunu çevirmedi. Değişiklik geri alındı.
 
 ---
 
@@ -191,7 +223,7 @@ Kural düzeltildi ve `is_danger` de buna uygun hale getirildi. Sonuç:
 
 **On altı kat kötüleşme.** Sebep: kural artık koşullu ("kuyruğa girebilirsin, ama sadece yem yemiyorsan") ama duyu vektörü o koşulu göremiyor. `is_danger` bazen kuyruğa güvenli diyor, bazen demiyor; ajan için sinyal gürültüye dönüşüyor.
 
-**Ders: ortamı daha doğru yapmak, ajanın algısı eşlik etmezse zarar verebiliyor.** Düzeltme geri alındı; anlamlı olması için duyu vektörünün kuyruk konumunu içermesi gerekir.
+**Ders: ortamı daha doğru yapmak, ajanın algısı eşlik etmezse zarar verebiliyor.** Bu deney, boş alan sayacı fikrinin çıkış noktası oldu — ajana gerçekten yeni bilgi vermek, kuralı doğrultmaktan daha etkili.
 
 ### Çok oyunlu değerlendirme
 
@@ -216,11 +248,9 @@ Tek oyunlu değerlendirme korundu. Kod karşılaştırma için repoda bırakıld
 
 ## Bilinen sınırlar
 
-**Yılan sonunda kendi gövdesine sıkışıyor.** Bir hata değil, duyu vektörünün sınırı: yılan yalnızca bir adım ötesini görüyor, kendi gövdesinin şeklini görmüyor. Girdiği boşluğun çıkmaz sokak olup olmadığını bilemiyor.
+**Kendine sıkışma azaldı ama bitmedi.** `self` ölümleri 77'den 39'a indi; hâlâ en yaygın ölüm sebebi. Boş alan sayacı yılana ne kadar yer olduğunu söylüyor ama gövdesinin **şeklini** hâlâ göstermiyor. Kuyruğun yönü gibi ek sinyaller denenebilir.
 
-Çözüm için duyu vektörü genişletilebilir — her yönde kaç boş hücre olduğu, ya da kuyruğun yönü. İkisi de vektörü büyütür ve öğrenmeyi yavaşlatır. Kuyruk deneyi bunun neden gerekli olduğunu gösterdi.
-
-**Deneyler tek koşu.** Bölüm 3'teki varyans tablosu bunun ne kadar ciddi olduğunu gösteriyor: aynı ayarlarla 3.63 ile 46.25 arasında sonuç alınabiliyor.
+**Deneyler az sayıda koşuya dayanıyor.** Bölüm 3'teki varyans tablosu bunun ne kadar ciddi olduğunu gösteriyor. Boş alan sayacı iki tohumla doğrulandı; hiperparametre tabloları tek koşu.
 
 **`evolve_live.py` ekranda 9 yılan gösteriyor ama popülasyon 100.** 9 bireyle elitizm popülasyonun yarısını kaplar, çeşitlilik ölür ve evrim yakınsamaz. Ekrandakiler o neslin en iyi 9'u.
 
