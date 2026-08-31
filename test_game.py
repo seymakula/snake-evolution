@@ -24,7 +24,7 @@ def test_no_crash(n_games=500):
 
         while game.is_alive:
             state = game.get_state()
-            assert len(state) == 18, "duyu vektörü 11 eleman olmalı"
+            assert len(state) == 18, "duyu vektörü 18 eleman olmalı"
             #assert all(v in (0, 1) for v in state), "değerler 0 veya 1 olmalı"
             assert sum(state[6:10]) == 1, "tam bir yön aktif olmalı"
 
