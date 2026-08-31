@@ -268,13 +268,21 @@ class Game:
         where_food_down = int(fr > hr)
         where_food_left = int(fc < hc)
         where_food_right = int(fc > hc)
-
+        # Kuyruk yonu: kuyruga dogru gitmek genelde guvenlidir cunku
+        # kuyruk cekiliyor. Bos alan sayaci "ne kadar yer var" der,
+        # bu "nereden cikabilirim" der.
+        tr, tc = self.body[-1]
+        tail_up = int(tr < hr)
+        tail_down = int(tr > hr)
+        tail_left = int(tc < hc)
+        tail_right = int(tc > hc)
         return [
-            danger_direct, danger_left, danger_right,
-            alan_direct, alan_left, alan_right,
-            which_up, which_down, which_left, which_right,
-            where_food_up, where_food_down, where_food_left, where_food_right,
-        ]
+    danger_direct, danger_left, danger_right,
+    alan_direct, alan_left, alan_right,
+    which_up, which_down, which_left, which_right,
+    where_food_up, where_food_down, where_food_left, where_food_right,
+    tail_up, tail_down, tail_left, tail_right,
+    ]
     def _info(self):
         """Sonuç ekranı, fitness ve hata ayıklama için ekstra bilgi."""
         return {
