@@ -49,6 +49,14 @@ MUTATION_RATE = 0.05
 MUTATION_STRENGTH = 0.2
 ELITE_COUNT = 4
 
-GENERATION_LIMIT = 300
+GENERATION_LIMIT = 100000
 TRAIN_SEED = 42
 GAMES_PER_GENOME = 1
+
+
+OBSTACLES = [
+    (3, 2), (3, 3), (4, 2), (4, 3),
+    (3, 6), (3, 7), (4, 6), (4, 7),
+]
+COLOR_OBSTACLE      = (95, 100, 115)   # engel — nötr gri-mavi
+COLOR_OBSTACLE_DEAD = (55, 58, 66)     # ölmüş panelde soluk

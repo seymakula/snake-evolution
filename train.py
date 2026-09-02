@@ -5,6 +5,10 @@ Egitim kaldigi yerden devam eder. Checkpoint'te sadece en iyi genom
 degil, POPULASYONUN TAMAMI saklanir — yoksa evrim yeni bir populasyonla
 bastan baslar ve kaldigi yerden devam etmis olmaz.
 
+Checkpoint yolu: models/checkpoint_train.npz
+evolve_live.py AYRI bir dosyaya yazar (models/checkpoint.npz), boylece
+ekranda birkac nesil izlemek buradaki 300 nesillik egitimi ezmez.
+
 Kullanim:
     python train.py            # checkpoint varsa devam eder
     python train.py --fresh    # checkpoint'i yok sayar, sifirdan baslar
@@ -15,7 +19,7 @@ Ctrl+C ile durdurursan son durum kaydedilir.
 import ast
 import os
 import sys
-
+import csv
 import numpy as np
 
 import config
@@ -23,13 +27,13 @@ from core import constants as C
 from evolution.population import evaluate_population
 from evolution.genetic import next_generation
 
-CHECKPOINT = "models/checkpoint.npz"
+CHECKPOINT_TRAIN = "models/checkpoint_train.npz"
+CHECKPOINT_LIVE = "models/checkpoint.npz"
 
 
 # ----------------------------------------------------------------------
 # Genom uretimi
 # ----------------------------------------------------------------------
-
 
 def genome_size():
     return (
@@ -50,20 +54,35 @@ def random_genomes(n, seed=0):
 # ----------------------------------------------------------------------
 # Checkpoint
 # ----------------------------------------------------------------------
+def save_csv(history, yol="models/history.csv"):
+    """
+    Egitim gecmisini CSV olarak yazar.
 
+    .npy sadece Python'dan okunur; CSV'yi Excel'de acabilir, baska bir
+    dile tasiyabilir, kendi grafigini cizebilirsin.
+    """
+    os.makedirs("models", exist_ok=True)
 
-def save_checkpoint(genomes, gen, history, rng, best_fitness):
+    with open(yol, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["nesil", "ort_fitness", "en_iyi_fitness",
+                    "ort_skor", "en_iyi_skor"])
+        for i, satir in enumerate(history):
+            w.writerow([i] + [round(float(v), 4) for v in satir])
+def save_checkpoint(genomes, gen, history, rng, best_fitness, yol=CHECKPOINT_TRAIN):
     """
     Devam edebilmek icin gereken HER SEYI kaydeder.
 
     rng durumu neden onemli: kaydetmezsen devam ettiginde ayni rastgele
     diziyi bastan uretir ve tekrarlanabilirlik bozulur.
     np.savez sozluk saklamaz, o yuzden str() ile metne cevriliyor.
+
+    yol parametresi: train.py ve evolve_live.py ayri dosyalara yazsin diye.
     """
     os.makedirs("models", exist_ok=True)
 
     np.savez(
-        CHECKPOINT,
+        yol,
         genomes=np.array(genomes),
         gen=gen,
         history=np.array(history) if history else np.zeros((0, 4)),
@@ -75,15 +94,15 @@ def save_checkpoint(genomes, gen, history, rng, best_fitness):
     )
 
 
-def load_checkpoint():
+def load_checkpoint(yol=CHECKPOINT_TRAIN):
     """Checkpoint varsa sozluk doner, yoksa None."""
-    if not os.path.exists(CHECKPOINT):
+    if not os.path.exists(yol):
         return None
 
-    d = np.load(CHECKPOINT, allow_pickle=False)
+    d = np.load(yol, allow_pickle=False)
 
-    # HIDDEN_SIZE degistirilip eski checkpoint'ten devam edilirse
-    # genom boyu tutmaz ve from_vector anlasilmaz bir hata verir.
+    # HIDDEN_SIZE ya da STATE_SIZE degistirilip eski checkpoint'ten devam
+    # edilirse genom boyu tutmaz ve from_vector anlasilmaz bir hata verir.
     # Bu kontrol onu onceden yakalar.
     if int(d["hidden_size"]) != config.HIDDEN_SIZE or int(d["state_size"]) != config.STATE_SIZE:
         print("Checkpoint farkli mimariye ait — sifirdan baslaniyor.")
@@ -111,7 +130,6 @@ def load_checkpoint():
 # ----------------------------------------------------------------------
 # Egitim
 # ----------------------------------------------------------------------
-
 
 def main():
     os.makedirs("models", exist_ok=True)
@@ -168,8 +186,7 @@ def main():
                 best_fitness = stats["best_fitness"]
                 np.save("models/best.npy", results[0][2])
 
-            # History artik SOZLUK degil LISTE tutuyor — checkpoint'ten
-            # yuklenen satirlarla ayni tipte olsun diye.
+
             history.append(
                 [
                     stats["avg_fitness"],
@@ -190,13 +207,13 @@ def main():
         print("\n\nDurduruldu — kaydediliyor...")
         save_checkpoint(genomes, gen, history, rng, best_fitness)
         np.save("models/history.npy", np.array(history))
-        print(
-            f"Nesil {gen}'e kadar kaydedildi. " f"Tekrar 'python train.py' ile devam edebilirsin."
-        )
+        save_csv(history)
+        print(f"Nesil {gen}'e kadar kaydedildi. Tekrar 'python train.py' ile devam edebilirsin.")
         return
 
     save_checkpoint(genomes, config.GENERATION_LIMIT - 1, history, rng, best_fitness)
     np.save("models/history.npy", np.array(history))
+    save_csv(history)
 
     print()
     print("=" * 62)
@@ -205,8 +222,8 @@ def main():
     print(f"Ilk nesil ortalama: {history[0][0]:.3f}")
     print(f"Son nesil ortalama: {history[-1][0]:.3f}")
     print(f"En iyi skor       : {int(max(h[3] for h in history))}")
-    print(f"Kaydedildi        : models/best.npy, models/history.npy")
-    print(f"Checkpoint        : {CHECKPOINT}")
+    print("Kaydedildi        : models/best.npy, models/history.npy")
+    print(f"Checkpoint        : {CHECKPOINT_TRAIN}")
     print("=" * 62)
 
 

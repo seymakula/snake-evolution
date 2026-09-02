@@ -61,6 +61,16 @@ def draw_game(surface, game, rect, show_header=True, is_leader=False):
     # Ölmüş oyunlar grileşir — kimin elendiği bir bakışta görünsün.
     bg = config.COLOR_DEAD_BG if dead else config.COLOR_BOARD
     pygame.draw.rect(surface, bg, (ox, oy, board_w, board_h))
+    
+    # Engeller — govdeden ve yemden ONCE cizilsin ki ustlerine
+    # bir sey gelirse gorunsun (normalde gelmez, ama cizim sirasi
+    # hata ayiklamada is gorur).
+    for (r, c) in getattr(game, "obstacles", ()):
+        pygame.draw.rect(
+            surface,
+            config.COLOR_OBSTACLE_DEAD if dead else config.COLOR_OBSTACLE,
+            (ox + c * cell + 1, oy + r * cell + 1, cell - 2, cell - 2),
+        )
 
     # Yem
     if game.food is not None:

@@ -14,16 +14,26 @@ from core import constants as C
 class Game:
     """Tek bir yılan oyunu. Ekranı, ajanı, evrimi bilmez."""
 
-    def __init__(self, rows=config.BOARD_ROWS, cols=config.BOARD_COLS, seed=None):
+    def __init__(
+        self,
+        rows=config.BOARD_ROWS,
+        cols=config.BOARD_COLS,
+        seed=None,
+        obstacles=None,
+    ):
         self.rows = rows
         self.cols = cols
+
+        # Engeller: tahtanin ortasinda duran sabit bloklar.
+        # Varsayilan BOS kume — yani engelsiz oyun, "engel listesi bos olan
+        # oyun"dur. Bu sayede mevcut her sey aynen calismaya devam eder.
+        # Kume, cunku her adimda "bu hucre engelde mi" diye soracagiz.
+        self.obstacles = set(obstacles) if obstacles else set()
 
         # Her oyunun KENDİ rastgele üreteci. Global random kullanılmaz,
         # yoksa 9 oyun birbirinin rastgeleliğini etkiler.
         self.rng = random.Random(seed)
 
-        # Açlık limiti tahta büyüklüğüne bağlı olmalı:
-        # 3x3'te 800 adım anlamsız, 20x20'de 20 adım çok kısa.
         # Açlık limiti tahta boyutuna bağlı olmalı: 3x3'te 800 adım anlamsız,
         # 20x20'de 20 adım çok kısa. Çarpanı config'den al.
         self.hunger_limit = self.rows * self.cols * config.HUNGER_FACTOR
@@ -45,7 +55,7 @@ class Game:
         for i in range(1, config.SNAKE_LENGTH):
             r = head[0] - self.direction[0] * i
             c = head[1] - self.direction[1] * i
-            if not self._in_bounds((r, c)):
+            if not self._in_bounds((r, c)) or (r, c) in self.obstacles:
                 break
             self.body.append((r, c))
 
@@ -83,6 +93,23 @@ class Game:
 
     def is_body(self, pos):
         return pos in self.body_set
+
+    def is_obstacle(self, pos):
+        return pos in self.obstacles
+
+    def is_blocked(self, pos):
+        """Bu hucre gecilemez mi? Duvar, engel ya da govde."""
+        return self.is_wall(pos) or self.is_obstacle(pos) or self.is_body(pos)
+
+    def is_danger(self, pos):
+        """
+        Bu hücreye girmek ölüm mü? Duyu vektöründe kullanılacak.
+
+        Engel de burada sayiliyor — yoksa yilan engeli GOREMEZ ve
+        ortam degisti ama ajan farkinda degil durumuna duseriz.
+        """
+        return self.is_blocked(pos)
+
     def _flood_fill(self, start, limit=None):
         """
         start hucresinden erisilebilecek bos hucre sayisi.
@@ -94,7 +121,7 @@ class Game:
         limit: erken durdurma. "50'den fazla bos var" ile "87 bos var"
         arasindaki fark ajan icin onemsiz, ama hesap maliyeti buyuk.
         """
-        if not self._in_bounds(start) or start in self.body_set:
+        if self.is_blocked(start):
             return 0
 
         if limit is None:
@@ -112,16 +139,13 @@ class Game:
 
             for dr, dc in C.DIRECTIONS:
                 komsu = (r + dr, c + dc)
-                if (komsu not in gorulen
-                        and self._in_bounds(komsu)
-                        and komsu not in self.body_set):
+                # Engeller de dolu sayiliyor — yoksa alan sayaci
+                # engelin arkasini da "erisilebilir" sanir.
+                if komsu not in gorulen and not self.is_blocked(komsu):
                     gorulen.add(komsu)
                     kuyruk.append(komsu)
 
         return sayac
-    def is_danger(self, pos):
-        """Bu hücreye girmek ölüm mü? Duyu vektöründe kullanılacak."""
-        return self.is_wall(pos) or self.is_body(pos)
 
     def _place_food(self):
         """Boş bir hücreye yem koyar. Boş hücre yoksa oyun KAZANILMIŞTIR."""
@@ -129,7 +153,8 @@ class Game:
             (r, c)
             for r in range(self.rows)
             for c in range(self.cols)
-            if (r, c) not in self.body_set
+            # Engeller de haric — yoksa yem ulasilamaz bir yere duser.
+            if (r, c) not in self.body_set and (r, c) not in self.obstacles
         ]
 
         if not empty:
@@ -166,7 +191,6 @@ class Game:
 
         Dönüş: (state, reward, done, info)
         Bu dörtlü pekiştirmeli öğrenmenin standart sözleşmesidir.
-        Sinir ağını taktığında burada tek satır değişmeyecek.
         """
         # 1) Bitmiş oyuna adım attırma.
         if not self.is_alive:
@@ -184,15 +208,17 @@ class Game:
         self.steps += 1
         self.steps_since_food += 1
 
-        # 4) Duvara çarptı mı?
-        if self.is_wall(new_head):
+        # 4) Duvara ya da ENGELE çarptı mı?
+        # Ikisi de WALL sayiliyor: ajan acisindan ayni sey — gecilemez
+        # sabit bir yuzey. Ayri etiket isteseydin constants'a eklerdin.
+        if self.is_wall(new_head) or self.is_obstacle(new_head):
             self.result = C.GameResult.WALL
             return self.get_state(), config.DEATH_PENALTY, True, self._info()
 
         # 5) Kendine çarptı mı?
         # NOT: Kuyruğun bulunduğu hücreye girmek aslında ölüm DEĞİLDİR,
-        # çünkü biz girerken kuyruk zaten çekiliyor. Şimdilik basit
-        # tutuyoruz (ölüm sayıyoruz); istersen sonra düzeltirsin.
+        # çünkü biz girerken kuyruk zaten çekiliyor. Denendi, geri alindi —
+        # sebep icin README'ye bak.
         if self.is_body(new_head):
             self.result = C.GameResult.SELF
             return self.get_state(), config.DEATH_PENALTY, True, self._info()
@@ -225,23 +251,25 @@ class Game:
         return self.get_state(), reward, False, self._info()
 
     # ------------------------------------------------------------------
-    # Ajanın gördüğü şey
+    # Ajanın gördüğü şey — 18 sayı
     # ------------------------------------------------------------------
 
     def get_state(self):
         """
-        ŞİMDİLİK BASİT. Rastgele ajan buna zaten bakmıyor.
-        İleride 11 sayılık duyu vektörüne genişleteceksin:
-        3 tehlike + 4 yön + 4 yem konumu.
-        Arayüz şimdiden burada dursun ki o zaman motorda
-        hiçbir şey değişmesin.
+        3 tehlike + 3 bos alan + 4 yon + 4 yem + 4 kuyruk = 18.
+
+        Ham koordinat yerine bu sinyaller veriliyor: agin ogrenmesi
+        gereken sey azaliyor ve ogrenilen kural tahta boyutundan
+        bagimsiz kaliyor.
         """
         if self.food is None:
-            return [0] * 11
+            return [0] * 18
+
         idx = C.DIRECTION_INDEX[self.direction]
         yon_direct = self.direction
         yon_right = C.DIRECTIONS[(idx + 1) % len(C.DIRECTIONS)]
         yon_left = C.DIRECTIONS[(idx - 1) % len(C.DIRECTIONS)]
+
         hr, hc = self.head
         direct_cell = (hr + yon_direct[0], hc + yon_direct[1])
         right_cell = (hr + yon_right[0], hc + yon_right[1])
@@ -251,38 +279,43 @@ class Game:
         danger_right = int(self.is_danger(right_cell))
         danger_left = int(self.is_danger(left_cell))
 
+        # Bos alan sayaci: o yone gidersen ne kadar yer var?
+        # Tehlike sensoru "dolu mu" der (ikili); bu "ne kadar yer var" der.
+        # Cikmaz sokagi ancak bu gorebilir. Normalize ediliyor — ham sayi
+        # 87 olurken diger duyular 0-1 arasinda kalsa ag icin dengesiz olurdu.
+        toplam = self.rows * self.cols
+        alan_direct = self._flood_fill(direct_cell) / toplam
+        alan_right = self._flood_fill(right_cell) / toplam
+        alan_left = self._flood_fill(left_cell) / toplam
+
         which_up = int(self.direction == C.UP)
         which_down = int(self.direction == C.DOWN)
         which_left = int(self.direction == C.LEFT)
         which_right = int(self.direction == C.RIGHT)
 
-        # Bos alan sayaci: o yone gidersen ne kadar yer var?
-        # Tehlike sensoru "dolu mu" der (ikili); bu "ne kadar yer var" der.
-        # Cikmaz sokagi ancak bu gorebilir.
-        toplam = self.rows * self.cols
-        alan_direct = self._flood_fill(direct_cell) / toplam
-        alan_right = self._flood_fill(right_cell) / toplam
-        alan_left = self._flood_fill(left_cell) / toplam
         fr, fc = self.food
         where_food_up = int(fr < hr)
         where_food_down = int(fr > hr)
         where_food_left = int(fc < hc)
         where_food_right = int(fc > hc)
+
         # Kuyruk yonu: kuyruga dogru gitmek genelde guvenlidir cunku
-        # kuyruk cekiliyor. Bos alan sayaci "ne kadar yer var" der,
+        # kuyruk cekiliyor. Bos alan "ne kadar yer var" der,
         # bu "nereden cikabilirim" der.
         tr, tc = self.body[-1]
         tail_up = int(tr < hr)
         tail_down = int(tr > hr)
         tail_left = int(tc < hc)
         tail_right = int(tc > hc)
+
         return [
-    danger_direct, danger_left, danger_right,
-    alan_direct, alan_left, alan_right,
-    which_up, which_down, which_left, which_right,
-    where_food_up, where_food_down, where_food_left, where_food_right,
-    tail_up, tail_down, tail_left, tail_right,
-    ]
+            danger_direct, danger_left, danger_right,
+            alan_direct, alan_left, alan_right,
+            which_up, which_down, which_left, which_right,
+            where_food_up, where_food_down, where_food_left, where_food_right,
+            tail_up, tail_down, tail_left, tail_right,
+        ]
+
     def _info(self):
         """Sonuç ekranı, fitness ve hata ayıklama için ekstra bilgi."""
         return {
