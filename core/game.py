@@ -1,7 +1,7 @@
 """
 core/game.py — Yılan oyununun saf mantığı.
 
-Bu dosyada pygame YOKTUR ve olmamalıdır.
+
 Test: `import pygame` satırını sisteminden silsen bile bu dosya çalışmalı.
 """
 
@@ -148,7 +148,7 @@ class Game:
         return sayac
 
     def _place_food(self):
-        """Boş bir hücreye yem koyar. Boş hücre yoksa oyun KAZANILMIŞTIR."""
+        
         empty = [
             (r, c)
             for r in range(self.rows)
@@ -216,9 +216,7 @@ class Game:
             return self.get_state(), config.DEATH_PENALTY, True, self._info()
 
         # 5) Kendine çarptı mı?
-        # NOT: Kuyruğun bulunduğu hücreye girmek aslında ölüm DEĞİLDİR,
-        # çünkü biz girerken kuyruk zaten çekiliyor. Denendi, geri alindi —
-        # sebep icin README'ye bak.
+       
         if self.is_body(new_head):
             self.result = C.GameResult.SELF
             return self.get_state(), config.DEATH_PENALTY, True, self._info()
@@ -255,13 +253,7 @@ class Game:
     # ------------------------------------------------------------------
 
     def get_state(self):
-        """
-        3 tehlike + 3 bos alan + 4 yon + 4 yem + 4 kuyruk = 18.
-
-        Ham koordinat yerine bu sinyaller veriliyor: agin ogrenmesi
-        gereken sey azaliyor ve ogrenilen kural tahta boyutundan
-        bagimsiz kaliyor.
-        """
+        
         if self.food is None:
             return [0] * 18
 

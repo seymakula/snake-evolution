@@ -15,12 +15,8 @@ GRID_SIZE = 3
 GAP = 10
 "HIZ"
 FPS = 60
-SPEED_MULTIPLIERS = [1, 2, 4]
-"EGİTİM"
-# POPULATION_NUM
-# MUTATION_NUM
-# ELITE_COUNT
-# GEN_NUM
+
+
 # --- Renkler (RGB) ---
 COLOR_BG = (18, 18, 22)  # pencere arka planı
 COLOR_BOARD = (30, 32, 38)  # tahta zemini

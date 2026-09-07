@@ -25,9 +25,6 @@ class Agent(ABC):
 
         Dönüş: constants.GO_FORWARD / TURN_RIGHT / TURN_LEFT
 
-        game parametresi opsiyonel. Rastgele ajan ve sinir ağı buna
-        ihtiyaç duymaz; insan ajanı da duymaz. Ama ileride "tam tahtayı
-        gören" bir ajan denemek istersen kapı açık kalsın.
         """
         raise NotImplementedError
 
